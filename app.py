@@ -1,4 +1,7 @@
+from flask import Flask, request, jsonify
 import mysql.connector
+
+app = Flask(__name)
 
 # Conectar ao banco de dados
 conn = mysql.connector.connect(
@@ -10,43 +13,41 @@ conn = mysql.connector.connect(
 
 cursor = conn.cursor()
 
-def criar_aluno(nome, idade, nota_primeiro_semestre, nota_segundo_semestre, nome_professor, numero_sala):
+@app.route('/alunos', methods=['POST'])
+def criar_aluno():
+    data = request.json
+    nome = data['nome']
+    idade = data['idade']
+    nota_primeiro_semestre = data['nota_primeiro_semestre']
+    nota_segundo_semestre = data['nota_segundo_semestre']
+    nome_professor = data['nome_professor']
+    numero_sala = data['numero_sala']
+    
     sql = "INSERT INTO alunos (nome, idade, nota_primeiro_semestre, nota_segundo_semestre, nome_professor, numero_sala) VALUES (%s, %s, %s, %s, %s, %s)"
     val = (nome, idade, nota_primeiro_semestre, nota_segundo_semestre, nome_professor, numero_sala)
     cursor.execute(sql, val)
     conn.commit()
-    print("Aluno inserido com sucesso!")
+    return jsonify({"message": "Aluno inserido com sucesso!"})
 
-def ler_aluno(id):
-    sql = "SELECT * FROM alunos WHERE ID = %s"
-    val = (id,)
-    cursor.execute(sql, val)
-    aluno = cursor.fetchone()
-    if aluno:
-        print("ID:", aluno[0])
-        print("Nome:", aluno[1])
-        print("Idade:", aluno[2])
-        print("Nota do primeiro semestre:", aluno[3])
-        print("Nota do segundo semestre:", aluno[4])
-        print("Nome do professor:", aluno[5])
-        print("Número da sala:", aluno[6])
-    else:
-        print("Aluno não encontrado!")
+@app.route('/alunos', methods=['GET'])
+def obter_alunos():
+    cursor.execute("SELECT * FROM alunos")
+    alunos = cursor.fetchall()
+    alunos_list = []
+    for aluno in alunos:
+        aluno_dict = {
+            "ID": aluno[0],
+            "nome": aluno[1],
+            "idade": aluno[2],
+            "nota_primeiro_semestre": float(aluno[3]),
+            "nota_segundo_semestre": float(aluno[4]),
+            "nome_professor": aluno[5],
+            "numero_sala": aluno[6]
+        }
+        alunos_list.append(aluno_dict)
+    return jsonify(alunos_list)
 
-def atualizar_aluno(id, nome, idade, nota_primeiro_semestre, nota_segundo_semestre, nome_professor, numero_sala):
-    sql = "UPDATE alunos SET nome = %s, idade = %s, nota_primeiro_semestre = %s, nota_segundo_semestre = %s, nome_professor = %s, numero_sala = %s WHERE ID = %s"
-    val = (nome, idade, nota_primeiro_semestre, nota_segundo_semestre, nome_professor, numero_sala, id)
-    cursor.execute(sql, val)
-    conn.commit()
-    print("Aluno atualizado com sucesso!")
+# Outras rotas para atualização e exclusão de alunos podem ser adicionadas aqui
 
-def deletar_aluno(id):
-    sql = "DELETE FROM alunos WHERE ID = %s"
-    val = (id,)
-    cursor.execute(sql, val)
-    conn.commit()
-    print("Aluno excluído com sucesso!")
-
-
-cursor.close()
-conn.close()
+if __name__ == '__main__':
+    app.run(debug=True)
